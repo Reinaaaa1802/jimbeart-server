@@ -1,0 +1,49 @@
+const express = require('express');
+const midtransClient = require('midtrans-client');
+const cors = require('cors');
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+let snap = new midtransClient.Snap({
+  isProduction: false,
+  serverKey: process.env.SERVER_KEY,
+});
+
+// biar bisa dicek server hidup
+app.get('/', (req, res) => {
+  res.send('Server Jimbeart aktif');
+});
+
+app.post('/create-transaction', async (req, res) => {
+  try {
+    const { name, price, customer } = req.body;
+
+    let parameter = {
+      transaction_details: {
+        order_id: 'ORDER-' + Date.now(),
+        gross_amount: price
+      },
+      customer_details: {
+        first_name: customer.name,
+        email: customer.email
+      },
+      item_details: [{
+        id: 'item1',
+        price: price,
+        quantity: 1,
+        name: name
+      }]
+    };
+
+    const transaction = await snap.createTransaction(parameter);
+    res.json({ token: transaction.token });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Terjadi kesalahan di server' });
+  }
+});
+
+app.listen(3000, () => console.log('Server jalan di port 3000'));
